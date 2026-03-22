@@ -10,16 +10,16 @@ type
 var
   Numbers: TIntArray;
 
-procedure GenerateNumbers(var arr: TIntArray);
+// 4.0: Dodanie parametrów (minVal, maxVal, count)
+procedure GenerateNumbers(var arr: TIntArray; minVal, maxVal, count: integer);
 var i: integer;
 begin
-  SetLength(arr, 50);
+  SetLength(arr, count);
   Randomize;
-  for i := 0 to 49 do
-    arr[i] := Random(101);
+  for i := 0 to count - 1 do
+    arr[i] := minVal + Random(maxVal - minVal + 1);
 end;
 
-// 3.5: Procedura do sortowania liczb
 procedure BubbleSort(var arr: TIntArray);
 var i, j, temp, n: integer;
 begin
@@ -33,7 +33,7 @@ begin
 end;
 
 begin
-  GenerateNumbers(Numbers);
-  BubbleSort(Numbers); 
+  GenerateNumbers(Numbers, 0, 100, 50);
+  BubbleSort(Numbers);
   Writeln('Tablica z 50 elementami zostala wygenerowana i posortowana.');
 end.
