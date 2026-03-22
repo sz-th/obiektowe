@@ -10,7 +10,6 @@ type
 var
   Numbers: TIntArray;
 
-// 3.0: Procedura na sztywno generująca 50 liczb od 0 do 100
 procedure GenerateNumbers(var arr: TIntArray);
 var i: integer;
 begin
@@ -20,7 +19,21 @@ begin
     arr[i] := Random(101);
 end;
 
+// 3.5: Procedura do sortowania liczb
+procedure BubbleSort(var arr: TIntArray);
+var i, j, temp, n: integer;
+begin
+  n := Length(arr);
+  for i := 0 to n - 2 do
+    for j := 0 to n - 2 - i do
+      if arr[j] > arr[j + 1] then
+      begin
+        temp := arr[j]; arr[j] := arr[j + 1]; arr[j + 1] := temp;
+      end;
+end;
+
 begin
   GenerateNumbers(Numbers);
-  Writeln('Tablica z 50 elementami zostala wygenerowana.');
+  BubbleSort(Numbers); 
+  Writeln('Tablica z 50 elementami zostala wygenerowana i posortowana.');
 end.
