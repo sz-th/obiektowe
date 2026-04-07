@@ -17,6 +17,30 @@ import kotlinx.serialization.json.*
 @Serializable
 data class DiscordMessage(val content: String)
 
+@Serializable
+data class SlackMessage(val channel: String, val text: String)
+
+class SlackClient(private val token: String) {
+    private val client = HttpClient(CIO) {
+        install(ContentNegotiation) {
+            json(Json { ignoreUnknownKeys = true })
+        }
+    }
+
+    suspend fun sendMessage(channelId: String, content: String) {
+        val response = client.post("https://slack.com/api/chat.postMessage") {
+            header(HttpHeaders.Authorization, "Bearer $token")
+            contentType(ContentType.Application.Json)
+            setBody(SlackMessage(channelId, content))
+        }
+        println("Slack Message sent. Status: ${response.status}")
+    }
+
+    fun close() {
+        client.close()
+    }
+}
+
 class DiscordClient(private val token: String) {
     private val client = HttpClient(CIO) {
         install(ContentNegotiation) {
@@ -143,9 +167,16 @@ fun main() = runBlocking {
     } else emptyMap()
 
     val token = env["DISCORD_BOT_TOKEN"] ?: System.getenv("DISCORD_BOT_TOKEN") ?: error("DISCORD_BOT_TOKEN not set")
+    val slackToken = env["SLACK_BOT_TOKEN"] ?: System.getenv("SLACK_BOT_TOKEN")
     
     val discordClient = DiscordClient(token)
     println("Discord Client initialized.")
+
+    var slackClient: SlackClient? = null
+    if (slackToken != null) {
+        slackClient = SlackClient(slackToken)
+        println("Slack Client initialized.")
+    }
     
     // Launch gateway to listen for messages
     launch {
@@ -159,4 +190,5 @@ fun main() = runBlocking {
     // Keep alive
     delay(Long.MAX_VALUE)
     discordClient.close()
+    slackClient?.close()
 }
