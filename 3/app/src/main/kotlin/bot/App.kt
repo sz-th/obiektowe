@@ -106,6 +106,19 @@ class DiscordClient(private val token: String) {
                                             sendMessage(channelId, "Failed to fetch categories: ${e.message}")
                                         }
                                     }
+                                } else if (content.startsWith("!products ") && channelId != null) {
+                                    val categoryName = content.removePrefix("!products ").trim()
+                                    launch {
+                                        try {
+                                            val response = client.get("http://localhost:8000/product/api") {
+                                                parameter("category", categoryName)
+                                            }
+                                            val body = response.bodyAsText()
+                                            sendMessage(channelId, "Products for $categoryName: $body")
+                                        } catch (e: Exception) {
+                                            sendMessage(channelId, "Failed to fetch products: ${e.message}")
+                                        }
+                                    }
                                 }
                             }
                         }
