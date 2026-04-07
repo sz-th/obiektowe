@@ -92,9 +92,21 @@ class DiscordClient(private val token: String) {
                             val author = data?.get("author")?.jsonObject
                             val isBot = author?.get("bot")?.jsonPrimitive?.booleanOrNull == true
                             if (!isBot) {
-                                val content = data?.get("content")?.jsonPrimitive?.content
+                                val content = data?.get("content")?.jsonPrimitive?.content ?: ""
                                 val channelId = data?.get("channel_id")?.jsonPrimitive?.content
                                 println("Received message from channel $channelId: $content")
+                                
+                                if (content == "!categories" && channelId != null) {
+                                    launch {
+                                        try {
+                                            val response = client.get("http://localhost:8000/category/api")
+                                            val body = response.bodyAsText()
+                                            sendMessage(channelId, "Categories: $body")
+                                        } catch (e: Exception) {
+                                            sendMessage(channelId, "Failed to fetch categories: ${e.message}")
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
