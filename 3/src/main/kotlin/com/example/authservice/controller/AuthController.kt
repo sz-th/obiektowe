@@ -6,15 +6,22 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 import com.example.authservice.dto.AuthRequest
+import com.example.authservice.service.AuthServiceEager
 
 @RestController
 @RequestMapping("/api")
-class AuthController {
+class AuthController(
+    private val authService: AuthServiceEager
+) {
 
     @PostMapping("/login")
     fun login(@RequestBody request: AuthRequest): Map<String, Any> {
-        // To be implemented with service
-        return mapOf("success" to false, "message" to "Not implemented yet")
+        val isAuthenticated = authService.authenticate(request.username, request.password)
+        return if (isAuthenticated) {
+            mapOf("success" to true, "message" to "Authentication successful")
+        } else {
+            mapOf("success" to false, "message" to "Invalid credentials")
+        }
     }
 
     @GetMapping("/users")
