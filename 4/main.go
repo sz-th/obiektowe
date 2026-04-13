@@ -24,7 +24,8 @@ type Weather struct {
 }
 
 type WeatherRequest struct {
-	City string `json:"city" form:"city" query:"city"`
+	City   string   `json:"city"` 
+	Cities []string `json:"cities"`
 }
 
 type WttrResponse struct {
@@ -111,39 +112,64 @@ func initDB() *gorm.DB {
 	return db
 }
 
-func (wc *WeatherController) GetWeather(c echo.Context) error {
-	city := c.QueryParam("city")
-	if city == "" {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Podaj miasto w parametrze"})
-	}
-
+func (wc *WeatherController) processCity(city string) map[string]interface{} {
+	city = strings.TrimSpace(city) 
+	
 	var weather Weather
 	result := wc.DB.Where("LOWER(city) = ?", strings.ToLower(city)).First(&weather)
 	
 	if result.Error != nil {
 		proxyData, err := wc.Proxy.FetchWeather(city)
 		if err != nil {
-			return c.JSON(http.StatusNotFound, map[string]string{
-				"error": "Nie znaleziono w bazie, a zewnętrzne API zwróciło błąd: " + err.Error(),
-			})
+			return map[string]interface{}{
+				"city":   city,
+				"status": "error",
+				"error":  err.Error(),
+			}
 		}
-		
+
 		if err := wc.DB.Create(proxyData).Error; err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{
-				"error": "Pobrano dane z API, ale wystąpił błąd zapisu do bazy: " + err.Error(),
-			})
+			return map[string]interface{}{
+				"city":   city,
+				"status": "error",
+				"error":  "Błąd zapisu do bazy danych",
+			}
 		}
-		
-		return c.JSON(http.StatusOK, map[string]interface{}{
+
+		return map[string]interface{}{
+			"city":   city,
+			"status": "success",
 			"source": "Zewnętrzne API (Zapisano do bazy)",
 			"data":   proxyData,
+		}
+	}
+
+	return map[string]interface{}{
+		"city":   city,
+		"status": "success",
+		"source": "Lokalna Baza Danych",
+		"data":   weather,
+	}
+}
+
+func (wc *WeatherController) GetWeather(c echo.Context) error {
+	cityParam := c.QueryParam("city")
+	if cityParam == "" {
+		return c.JSON(http.StatusBadRequest, map[string]string{
+			"error": "Podaj miasta w parametrze (po przecinku), np. /weather?city=Krakow,Berlin",
 		})
 	}
 
-	return c.JSON(http.StatusOK, map[string]interface{}{
-		"source": "Lokalna Baza Danych",
-		"data":   weather,
-	})
+	cities := strings.Split(cityParam, ",")
+	var results []map[string]interface{}
+
+	for _, city := range cities {
+		if city != "" {
+			results = append(results, wc.processCity(city))
+		}
+	}
+
+	return c.JSON(http.StatusOK, results)
 }
 
 func (wc *WeatherController) PostWeather(c echo.Context) error {
@@ -151,37 +177,27 @@ func (wc *WeatherController) PostWeather(c echo.Context) error {
 	if err := c.Bind(req); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Nieprawidłowy format danych"})
 	}
-	if req.City == "" {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Pole 'city' jest wymagane"})
+
+	var targets []string
+	if req.City != "" {
+		targets = append(targets, req.City)
 	}
+	targets = append(targets, req.Cities...)
 
-	var weather Weather
-	result := wc.DB.Where("LOWER(city) = ?", strings.ToLower(req.City)).First(&weather)
-	
-	if result.Error != nil {
-		proxyData, err := wc.Proxy.FetchWeather(req.City)
-		if err != nil {
-			return c.JSON(http.StatusNotFound, map[string]string{
-				"error": "Nie znaleziono w bazie, a zewnętrzne API zwróciło błąd: " + err.Error(),
-			})
-		}
-
-		if err := wc.DB.Create(proxyData).Error; err != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]string{
-				"error": "Pobrano dane z API, ale wystąpił błąd zapisu do bazy: " + err.Error(),
-			})
-		}
-
-		return c.JSON(http.StatusOK, map[string]interface{}{
-			"source": "Zewnętrzne API (Zapisano do bazy)",
-			"data":   proxyData,
+	if len(targets) == 0 {
+		return c.JSON(http.StatusBadRequest, map[string]string{
+			"error": "Podaj pole 'city' lub tablicę 'cities' w formacie JSON",
 		})
 	}
 
-	return c.JSON(http.StatusOK, map[string]interface{}{
-		"source": "Lokalna Baza Danych",
-		"data":   weather,
-	})
+	var results []map[string]interface{}
+	for _, city := range targets {
+		if city != "" {
+			results = append(results, wc.processCity(city))
+		}
+	}
+
+	return c.JSON(http.StatusOK, results)
 }
 
 func main() {
