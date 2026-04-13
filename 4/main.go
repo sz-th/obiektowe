@@ -27,7 +27,6 @@ type WeatherRequest struct {
 	City string `json:"city" form:"city" query:"city"`
 }
 
-
 type WttrResponse struct {
 	CurrentCondition []struct {
 		TempC       string `json:"temp_C"`
@@ -36,6 +35,7 @@ type WttrResponse struct {
 		} `json:"weatherDesc"`
 	} `json:"current_condition"`
 }
+
 
 type WeatherProxy struct{}
 
@@ -75,7 +75,7 @@ func (wp *WeatherProxy) FetchWeather(city string) (*Weather, error) {
 	}
 
 	return &Weather{
-		City:        strings.Title(strings.ToLower(city)), 
+		City:        strings.Title(strings.ToLower(city)),
 		Temperature: tempFloat,
 		Description: desc,
 	}, nil
@@ -84,7 +84,7 @@ func (wp *WeatherProxy) FetchWeather(city string) (*Weather, error) {
 
 type WeatherController struct {
 	DB    *gorm.DB
-	Proxy *WeatherProxy 
+	Proxy *WeatherProxy
 }
 
 func initDB() *gorm.DB {
@@ -128,8 +128,14 @@ func (wc *WeatherController) GetWeather(c echo.Context) error {
 			})
 		}
 		
+		if err := wc.DB.Create(proxyData).Error; err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{
+				"error": "Pobrano dane z API, ale wystąpił błąd zapisu do bazy: " + err.Error(),
+			})
+		}
+		
 		return c.JSON(http.StatusOK, map[string]interface{}{
-			"source": "Zewnętrzne API (Proxy)",
+			"source": "Zewnętrzne API (Zapisano do bazy)",
 			"data":   proxyData,
 		})
 	}
@@ -159,8 +165,15 @@ func (wc *WeatherController) PostWeather(c echo.Context) error {
 				"error": "Nie znaleziono w bazie, a zewnętrzne API zwróciło błąd: " + err.Error(),
 			})
 		}
+
+		if err := wc.DB.Create(proxyData).Error; err != nil {
+			return c.JSON(http.StatusInternalServerError, map[string]string{
+				"error": "Pobrano dane z API, ale wystąpił błąd zapisu do bazy: " + err.Error(),
+			})
+		}
+
 		return c.JSON(http.StatusOK, map[string]interface{}{
-			"source": "Zewnętrzne API (Proxy)",
+			"source": "Zewnętrzne API (Zapisano do bazy)",
 			"data":   proxyData,
 		})
 	}
