@@ -17,8 +17,27 @@ section {
   margin-bottom: 16px;
 }
 
+.nav {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.nav a {
+  color: #1d4ed8;
+  text-decoration: none;
+}
+
+.nav a:hover {
+  text-decoration: underline;
+}
+
 ul {
   padding-left: 16px;
+}
+
+li {
+  margin-bottom: 8px;
 }
 
 form {

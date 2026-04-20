@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 
 const API_URL = "http://localhost:8080/api/products";
 
-export default function Products() {
+export default function Products({ onAddToCart }) {
   const [products, setProducts] = useState([]);
   const [error, setError] = useState("");
 
@@ -31,6 +31,9 @@ export default function Products() {
         {products.map((product) => (
           <li key={product.id}>
             {product.name} - {product.price.toFixed(2)} PLN
+            <button type="button" onClick={() => onAddToCart(product)}>
+              Dodaj do koszyka
+            </button>
           </li>
         ))}
       </ul>
