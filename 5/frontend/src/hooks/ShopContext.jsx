@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import axios from "axios";
 
 const API_PRODUCTS_URL = "http://localhost:8080/api/products";
 const API_CART_URL = "http://localhost:8080/api/cart";
@@ -17,12 +18,8 @@ export function ShopProvider({ children }) {
   useEffect(() => {
     async function loadProducts() {
       try {
-        const response = await fetch(API_PRODUCTS_URL);
-        if (!response.ok) {
-          throw new Error("Nie udalo sie pobrac produktow");
-        }
-        const data = await response.json();
-        setProducts(data);
+        const response = await axios.get(API_PRODUCTS_URL);
+        setProducts(response.data);
         setProductsError("");
       } catch (error) {
         setProductsError("Nie udalo sie pobrac produktow");
@@ -39,26 +36,13 @@ export function ShopProvider({ children }) {
   async function sendCart() {
     setCartStatus("");
     try {
-      const response = await fetch(API_CART_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          items: cartItems,
-          total: cartItems.reduce((sum, item) => sum + item.price, 0),
-        }),
+      const response = await axios.post(API_CART_URL, {
+        items: cartItems,
+        total: cartItems.reduce((sum, item) => sum + item.price, 0),
       });
 
-      if (!response.ok) {
-        setCartStatus("Nie udalo sie wyslac koszyka");
-        setStatus("Nie udalo sie wyslac koszyka");
-        return false;
-      }
-
-      const data = await response.json();
-      setCartStatus(data.message);
-      setStatus(data.message);
+      setCartStatus(response.data.message);
+      setStatus(response.data.message);
       return true;
     } catch (error) {
       setCartStatus("Nie udalo sie wyslac koszyka");
@@ -70,26 +54,13 @@ export function ShopProvider({ children }) {
   async function sendPayment(formData) {
     setPaymentStatus("");
     try {
-      const response = await fetch(API_PAYMENTS_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          ...formData,
-          amount: Number(formData.amount),
-        }),
+      const response = await axios.post(API_PAYMENTS_URL, {
+        ...formData,
+        amount: Number(formData.amount),
       });
 
-      if (!response.ok) {
-        setPaymentStatus("Nie udalo sie wyslac platnosci");
-        setStatus("Nie udalo sie wyslac platnosci");
-        return false;
-      }
-
-      const data = await response.json();
-      setPaymentStatus(data.message);
-      setStatus(data.message);
+      setPaymentStatus(response.data.message);
+      setStatus(response.data.message);
       return true;
     } catch (error) {
       setPaymentStatus("Nie udalo sie wyslac platnosci");

@@ -33,6 +33,19 @@ var products = []Product{
 	{ID: 3, Name: "Klawiatura", Price: 249.99},
 }
 
+func withCORS(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:5173")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		next(w, r)
+	}
+}
+
 func productsHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -77,9 +90,9 @@ func cartHandler(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/api/products", productsHandler)
-	mux.HandleFunc("/api/cart", cartHandler)
-	mux.HandleFunc("/api/payments", paymentsHandler)
+	mux.HandleFunc("/api/products", withCORS(productsHandler))
+	mux.HandleFunc("/api/cart", withCORS(cartHandler))
+	mux.HandleFunc("/api/payments", withCORS(paymentsHandler))
 
 	log.Println("Backend listening on :8080")
 	if err := http.ListenAndServe(":8080", mux); err != nil {
