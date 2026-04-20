@@ -20,24 +20,30 @@ export default function Payments({ onPaymentSuccess }) {
   async function onSubmit(event) {
     event.preventDefault();
     setStatus("");
+    try {
+      const response = await fetch(API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          ...formData,
+          amount: Number(formData.amount),
+        }),
+      });
 
-    const response = await fetch(API_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(formData),
-    });
+      if (!response.ok) {
+        setStatus("Nie udalo sie wyslac platnosci");
+        return;
+      }
 
-    if (!response.ok) {
+      const data = await response.json();
+      setStatus(data.message);
+      onPaymentSuccess(data.message);
+      setFormData({ fullName: "", email: "", amount: "" });
+    } catch (error) {
       setStatus("Nie udalo sie wyslac platnosci");
-      return;
     }
-
-    const data = await response.json();
-    setStatus(data.message);
-    onPaymentSuccess(data.message);
-    setFormData({ fullName: "", email: "", amount: "" });
   }
 
   return (
