@@ -1,14 +1,13 @@
 import { useState } from "react";
+import { useShop } from "../hooks/ShopContext";
 
-const API_URL = "http://localhost:8080/api/payments";
-
-export default function Payments({ onPaymentSuccess }) {
+export default function Payments() {
+  const { paymentStatus, sendPayment } = useShop();
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
     amount: "",
   });
-  const [status, setStatus] = useState("");
 
   function onChange(event) {
     setFormData((prev) => ({
@@ -19,30 +18,9 @@ export default function Payments({ onPaymentSuccess }) {
 
   async function onSubmit(event) {
     event.preventDefault();
-    setStatus("");
-    try {
-      const response = await fetch(API_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          ...formData,
-          amount: Number(formData.amount),
-        }),
-      });
-
-      if (!response.ok) {
-        setStatus("Nie udalo sie wyslac platnosci");
-        return;
-      }
-
-      const data = await response.json();
-      setStatus(data.message);
-      onPaymentSuccess(data.message);
+    const success = await sendPayment(formData);
+    if (success) {
       setFormData({ fullName: "", email: "", amount: "" });
-    } catch (error) {
-      setStatus("Nie udalo sie wyslac platnosci");
     }
   }
 
@@ -76,7 +54,7 @@ export default function Payments({ onPaymentSuccess }) {
         />
         <button type="submit">Wyslij</button>
       </form>
-      {status ? <p>{status}</p> : null}
+      {paymentStatus ? <p>{paymentStatus}</p> : null}
     </section>
   );
 }

@@ -13,9 +13,14 @@ type Product struct {
 }
 
 type PaymentRequest struct {
-	FullName string `json:"fullName"`
-	Email    string `json:"email"`
-	Amount   string `json:"amount"`
+	FullName string  `json:"fullName"`
+	Email    string  `json:"email"`
+	Amount   float64 `json:"amount"`
+}
+
+type CartRequest struct {
+	Items []Product `json:"items"`
+	Total float64   `json:"total"`
 }
 
 type PaymentResponse struct {
@@ -54,9 +59,26 @@ func paymentsHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(PaymentResponse{Message: "Platnosc przyjeta"})
 }
 
+func cartHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var request CartRequest
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(PaymentResponse{Message: "Koszyk przyjety"})
+}
+
 func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/products", productsHandler)
+	mux.HandleFunc("/api/cart", cartHandler)
 	mux.HandleFunc("/api/payments", paymentsHandler)
 
 	log.Println("Backend listening on :8080")
