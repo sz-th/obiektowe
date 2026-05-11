@@ -15,8 +15,8 @@ export default function Cart() {
         <p>Koszyk jest pusty</p>
       ) : (
         <ul>
-          {cartItems.map((item, index) => (
-            <li key={`${item.id}-${index}`}>
+          {cartItems.map((item) => (
+            <li key={item.cartId}>
               {item.name} - {item.price.toFixed(2)} PLN
             </li>
           ))}

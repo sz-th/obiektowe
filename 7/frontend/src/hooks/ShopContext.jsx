@@ -1,11 +1,35 @@
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import axios from "axios";
 
-const API_PRODUCTS_URL = "http://localhost:8080/api/products";
-const API_CART_URL = "http://localhost:8080/api/cart";
-const API_PAYMENTS_URL = "http://localhost:8080/api/payments";
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+const API_PRODUCTS_URL = `${API_BASE_URL}/api/products`;
+const API_CART_URL = `${API_BASE_URL}/api/cart`;
+const API_PAYMENTS_URL = `${API_BASE_URL}/api/payments`;
+
+const PRODUCTS_ERROR_MSG = "Nie udalo sie pobrac produktow";
+const CART_ERROR_MSG = "Nie udalo sie wyslac koszyka";
+const PAYMENT_ERROR_MSG = "Nie udalo sie wyslac platnosci";
 
 const ShopContext = createContext(null);
+ShopContext.displayName = "ShopContext";
+
+function generateCartId() {
+  if (
+    typeof crypto !== "undefined" &&
+    typeof crypto.randomUUID === "function"
+  ) {
+    return crypto.randomUUID();
+  }
+  return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
 
 export function ShopProvider({ children }) {
   const [products, setProducts] = useState([]);
@@ -16,58 +40,64 @@ export function ShopProvider({ children }) {
   const [status, setStatus] = useState("");
 
   useEffect(() => {
+    let cancelled = false;
+
     async function loadProducts() {
       try {
         const response = await axios.get(API_PRODUCTS_URL);
+        if (cancelled) return;
         setProducts(response.data);
         setProductsError("");
       } catch (error) {
-        setProductsError("Nie udalo sie pobrac produktow");
+        if (cancelled) return;
+        console.error("loadProducts failed", error);
+        setProductsError(PRODUCTS_ERROR_MSG);
       }
     }
 
     loadProducts();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  function addToCart(product) {
-    setCartItems((prev) => [...prev, product]);
-  }
+  const addToCart = useCallback((product) => {
+    setCartItems((prev) => [...prev, { ...product, cartId: generateCartId() }]);
+  }, []);
 
-  async function sendCart() {
+  const sendCart = useCallback(async () => {
     setCartStatus("");
     try {
-      const response = await axios.post(API_CART_URL, {
-        items: cartItems,
-        total: cartItems.reduce((sum, item) => sum + item.price, 0),
-      });
-
+      const items = cartItems.map(({ cartId, ...rest }) => rest);
+      const response = await axios.post(API_CART_URL, { items });
       setCartStatus(response.data.message);
       setStatus(response.data.message);
       return true;
     } catch (error) {
-      setCartStatus("Nie udalo sie wyslac koszyka");
-      setStatus("Nie udalo sie wyslac koszyka");
+      console.error("sendCart failed", error);
+      setCartStatus(CART_ERROR_MSG);
+      setStatus(CART_ERROR_MSG);
       return false;
     }
-  }
+  }, [cartItems]);
 
-  async function sendPayment(formData) {
+  const sendPayment = useCallback(async (formData) => {
     setPaymentStatus("");
     try {
       const response = await axios.post(API_PAYMENTS_URL, {
         ...formData,
         amount: Number(formData.amount),
       });
-
       setPaymentStatus(response.data.message);
       setStatus(response.data.message);
       return true;
     } catch (error) {
-      setPaymentStatus("Nie udalo sie wyslac platnosci");
-      setStatus("Nie udalo sie wyslac platnosci");
+      console.error("sendPayment failed", error);
+      setPaymentStatus(PAYMENT_ERROR_MSG);
+      setStatus(PAYMENT_ERROR_MSG);
       return false;
     }
-  }
+  }, []);
 
   const value = useMemo(
     () => ({
@@ -81,7 +111,17 @@ export function ShopProvider({ children }) {
       sendCart,
       sendPayment,
     }),
-    [products, productsError, cartItems, cartStatus, paymentStatus, status],
+    [
+      products,
+      productsError,
+      cartItems,
+      cartStatus,
+      paymentStatus,
+      status,
+      addToCart,
+      sendCart,
+      sendPayment,
+    ],
   );
 
   return <ShopContext.Provider value={value}>{children}</ShopContext.Provider>;

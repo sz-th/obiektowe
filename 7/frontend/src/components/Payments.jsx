@@ -1,13 +1,11 @@
 import { useState } from "react";
 import { useShop } from "../hooks/ShopContext";
 
+const INITIAL_FORM = { fullName: "", email: "", amount: "" };
+
 export default function Payments() {
   const { paymentStatus, sendPayment } = useShop();
-  const [formData, setFormData] = useState({
-    fullName: "",
-    email: "",
-    amount: "",
-  });
+  const [formData, setFormData] = useState(INITIAL_FORM);
 
   function onChange(event) {
     setFormData((prev) => ({
@@ -20,7 +18,7 @@ export default function Payments() {
     event.preventDefault();
     const success = await sendPayment(formData);
     if (success) {
-      setFormData({ fullName: "", email: "", amount: "" });
+      setFormData(INITIAL_FORM);
     }
   }
 
@@ -34,6 +32,7 @@ export default function Payments() {
           value={formData.fullName}
           onChange={onChange}
           required
+          maxLength={200}
         />
         <input
           name="email"
@@ -42,11 +41,13 @@ export default function Payments() {
           value={formData.email}
           onChange={onChange}
           required
+          maxLength={320}
         />
         <input
           name="amount"
           type="number"
           step="0.01"
+          min="0.01"
           placeholder="Kwota"
           value={formData.amount}
           onChange={onChange}
