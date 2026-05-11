@@ -1,0 +1,39 @@
+#!/bin/sh
+set -e
+
+repo_root=$(git rev-parse --show-toplevel)
+backend_dir="$repo_root/7/backend"
+
+if [ ! -d "$backend_dir" ]; then
+    exit 0
+fi
+
+changed_backend=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '^7/backend/' || true)
+if [ -z "$changed_backend" ]; then
+    exit 0
+fi
+
+if ! command -v gofmt >/dev/null 2>&1; then
+    echo "gofmt not found in PATH" >&2
+    exit 1
+fi
+
+unformatted=$(gofmt -l "$backend_dir")
+if [ -n "$unformatted" ]; then
+    echo "gofmt found unformatted files:" >&2
+    echo "$unformatted" >&2
+    exit 1
+fi
+
+if ! command -v go >/dev/null 2>&1; then
+    echo "go not found in PATH" >&2
+    exit 1
+fi
+
+cd "$backend_dir"
+if ! go vet ./...; then
+    echo "go vet failed" >&2
+    exit 1
+fi
+
+exit 0
