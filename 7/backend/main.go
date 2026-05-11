@@ -53,7 +53,9 @@ func productsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(products)
+	if err := json.NewEncoder(w).Encode(products); err != nil {
+		log.Printf("encode response: %v", err)
+	}
 }
 
 func paymentsHandler(w http.ResponseWriter, r *http.Request) {
@@ -61,6 +63,7 @@ func paymentsHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
+	defer r.Body.Close()
 
 	var request PaymentRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
@@ -69,7 +72,9 @@ func paymentsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(PaymentResponse{Message: "Platnosc przyjeta"})
+	if err := json.NewEncoder(w).Encode(PaymentResponse{Message: "Platnosc przyjeta"}); err != nil {
+		log.Printf("encode response: %v", err)
+	}
 }
 
 func cartHandler(w http.ResponseWriter, r *http.Request) {
@@ -77,6 +82,7 @@ func cartHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
+	defer r.Body.Close()
 
 	var request CartRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
@@ -85,7 +91,9 @@ func cartHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(PaymentResponse{Message: "Koszyk przyjety"})
+	if err := json.NewEncoder(w).Encode(PaymentResponse{Message: "Koszyk przyjety"}); err != nil {
+		log.Printf("encode response: %v", err)
+	}
 }
 
 func main() {
