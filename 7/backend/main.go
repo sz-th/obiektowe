@@ -2,9 +2,13 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
+	"net/mail"
+	"strings"
+	"time"
 )
 
 const (
@@ -14,6 +18,12 @@ const (
 	invalidBodyMsg      = "Invalid request body"
 	allowedOrigin       = "http://localhost:5173"
 	serverAddr          = ":8080"
+
+	maxBodyBytes      = 1 << 20
+	maxFullNameLength = 200
+	maxEmailLength    = 320
+	maxAmount         = 1_000_000.0
+	maxCartItems      = 1000
 )
 
 type Product struct {
@@ -42,8 +52,16 @@ var products = []Product{
 	{ID: 3, Name: "Klawiatura", Price: 249.99},
 }
 
+func setSecurityHeaders(w http.ResponseWriter) {
+	h := w.Header()
+	h.Set("X-Content-Type-Options", "nosniff")
+	h.Set("X-Frame-Options", "DENY")
+	h.Set("Referrer-Policy", "no-referrer")
+}
+
 func withCORS(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		setSecurityHeaders(w)
 		w.Header().Set("Access-Control-Allow-Origin", allowedOrigin)
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
@@ -72,11 +90,41 @@ func writeJSON(w http.ResponseWriter, status int, payload any) {
 }
 
 func decodeJSON(w http.ResponseWriter, r *http.Request, dest any) bool {
-	if err := json.NewDecoder(r.Body).Decode(dest); err != nil {
+	r.Body = http.MaxBytesReader(w, r.Body, maxBodyBytes)
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(dest); err != nil {
 		http.Error(w, invalidBodyMsg, http.StatusBadRequest)
 		return false
 	}
 	return true
+}
+
+func validatePayment(p PaymentRequest) error {
+	name := strings.TrimSpace(p.FullName)
+	if name == "" || len(name) > maxFullNameLength {
+		return errors.New("invalid full name")
+	}
+
+	email := strings.TrimSpace(p.Email)
+	if email == "" || len(email) > maxEmailLength || !strings.Contains(email, "@") {
+		return errors.New("invalid email")
+	}
+	if _, err := mail.ParseAddress(email); err != nil {
+		return errors.New("invalid email")
+	}
+
+	if p.Amount <= 0 || p.Amount > maxAmount {
+		return errors.New("invalid amount")
+	}
+	return nil
+}
+
+func validateCart(c CartRequest) error {
+	if len(c.Items) == 0 || len(c.Items) > maxCartItems {
+		return errors.New("invalid items")
+	}
+	return nil
 }
 
 func productsHandler(w http.ResponseWriter, r *http.Request) {
@@ -96,8 +144,12 @@ func paymentsHandler(w http.ResponseWriter, r *http.Request) {
 	if !decodeJSON(w, r, &request) {
 		return
 	}
+	if err := validatePayment(request); err != nil {
+		http.Error(w, invalidBodyMsg, http.StatusBadRequest)
+		return
+	}
 
-	message := fmt.Sprintf("Platnosc przyjeta dla %s na kwote %.2f", request.FullName, request.Amount)
+	message := fmt.Sprintf("Platnosc przyjeta na kwote %.2f", request.Amount)
 	writeJSON(w, http.StatusOK, PaymentResponse{Message: message})
 }
 
@@ -111,6 +163,10 @@ func cartHandler(w http.ResponseWriter, r *http.Request) {
 	if !decodeJSON(w, r, &request) {
 		return
 	}
+	if err := validateCart(request); err != nil {
+		http.Error(w, invalidBodyMsg, http.StatusBadRequest)
+		return
+	}
 
 	message := fmt.Sprintf("Koszyk przyjety (%d pozycji)", len(request.Items))
 	writeJSON(w, http.StatusOK, PaymentResponse{Message: message})
@@ -122,8 +178,18 @@ func main() {
 	mux.HandleFunc("/api/cart", withCORS(cartHandler))
 	mux.HandleFunc("/api/payments", withCORS(paymentsHandler))
 
+	srv := &http.Server{
+		Addr:              serverAddr,
+		Handler:           mux,
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       10 * time.Second,
+		WriteTimeout:      10 * time.Second,
+		IdleTimeout:       60 * time.Second,
+		MaxHeaderBytes:    1 << 20,
+	}
+
 	log.Printf("Backend listening on %s", serverAddr)
-	if err := http.ListenAndServe(serverAddr, mux); err != nil {
+	if err := srv.ListenAndServe(); err != nil {
 		log.Fatal(err)
 	}
 }
