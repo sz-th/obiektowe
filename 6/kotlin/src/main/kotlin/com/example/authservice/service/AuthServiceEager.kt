@@ -3,8 +3,9 @@ package com.example.authservice.service
 import org.springframework.stereotype.Service
 
 @Service
-class AuthServiceEager {
-
+class AuthServiceEager(
+	private val authCredentials: AuthCredentials
+) {
 	fun authenticate(username: String, password: String): Boolean =
-		AuthCredentials.authenticate(username, password)
+		authCredentials.authenticate(username, password)
 }

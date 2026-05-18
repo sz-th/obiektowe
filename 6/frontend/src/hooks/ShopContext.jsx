@@ -6,13 +6,9 @@ import {
   useMemo,
   useState,
 } from "react";
-import axios from "axios";
-
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
-const API_PRODUCTS_URL = `${API_BASE_URL}/api/products`;
-const API_CART_URL = `${API_BASE_URL}/api/cart`;
-const API_PAYMENTS_URL = `${API_BASE_URL}/api/payments`;
+import { apiClient, API_PATHS } from "../api/client";
+import { parseMessage, parseProducts } from "../api/validators";
+import { generateCartId } from "../utils/id";
 
 const PRODUCTS_ERROR_MSG = "Nie udalo sie pobrac produktow";
 const CART_ERROR_MSG = "Nie udalo sie wyslac koszyka";
@@ -20,16 +16,6 @@ const PAYMENT_ERROR_MSG = "Nie udalo sie wyslac platnosci";
 
 const ShopContext = createContext(null);
 ShopContext.displayName = "ShopContext";
-
-function generateCartId() {
-  if (
-    typeof crypto !== "undefined" &&
-    typeof crypto.randomUUID === "function"
-  ) {
-    return crypto.randomUUID();
-  }
-  return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-}
 
 function parseAmount(value) {
   const amount = Number.parseFloat(value);
@@ -43,32 +29,34 @@ export function ShopProvider({ children }) {
   const [products, setProducts] = useState([]);
   const [productsError, setProductsError] = useState("");
   const [cartItems, setCartItems] = useState([]);
-  const [paymentStatus, setPaymentStatus] = useState("");
   const [cartStatus, setCartStatus] = useState("");
-  const [status, setStatus] = useState("");
+  const [paymentStatus, setPaymentStatus] = useState("");
 
   useEffect(() => {
-    let cancelled = false;
+    const controller = new AbortController();
 
     async function loadProducts() {
       try {
-        const response = await axios.get(API_PRODUCTS_URL);
-        if (cancelled) return;
-        if (response.status === 200) {
-          setProducts(response.data);
-          setProductsError("");
+        const response = await apiClient.get(API_PATHS.products, {
+          signal: controller.signal,
+        });
+        const parsed = parseProducts(response.data);
+        if (parsed === null) {
+          setProductsError(PRODUCTS_ERROR_MSG);
+          return;
         }
-      } catch (error) {
-        if (cancelled) return;
-        console.error("loadProducts failed", error);
+        setProducts(parsed);
+        setProductsError("");
+      } catch {
+        if (controller.signal.aborted) {
+          return;
+        }
         setProductsError(PRODUCTS_ERROR_MSG);
       }
     }
 
     loadProducts();
-    return () => {
-      cancelled = true;
-    };
+    return () => controller.abort();
   }, []);
 
   const addToCart = useCallback((product) => {
@@ -83,14 +71,16 @@ export function ShopProvider({ children }) {
         name: item.name,
         price: item.price,
       }));
-      const response = await axios.post(API_CART_URL, { items });
-      setCartStatus(response.data.message);
-      setStatus(response.data.message);
+      const response = await apiClient.post(API_PATHS.cart, { items });
+      const message = parseMessage(response.data);
+      if (message === null) {
+        setCartStatus(CART_ERROR_MSG);
+        return false;
+      }
+      setCartStatus(message);
       return true;
-    } catch (error) {
-      console.error("sendCart failed", error);
+    } catch {
       setCartStatus(CART_ERROR_MSG);
-      setStatus(CART_ERROR_MSG);
       return false;
     }
   }, [cartItems]);
@@ -100,22 +90,24 @@ export function ShopProvider({ children }) {
     const amount = parseAmount(formData.amount);
     if (amount === null) {
       setPaymentStatus(PAYMENT_ERROR_MSG);
-      setStatus(PAYMENT_ERROR_MSG);
       return false;
     }
 
     try {
-      const response = await axios.post(API_PAYMENTS_URL, {
-        ...formData,
+      const response = await apiClient.post(API_PATHS.payments, {
+        fullName: formData.fullName.trim(),
+        email: formData.email.trim(),
         amount,
       });
-      setPaymentStatus(response.data.message);
-      setStatus(response.data.message);
+      const message = parseMessage(response.data);
+      if (message === null) {
+        setPaymentStatus(PAYMENT_ERROR_MSG);
+        return false;
+      }
+      setPaymentStatus(message);
       return true;
-    } catch (error) {
-      console.error("sendPayment failed", error);
+    } catch {
       setPaymentStatus(PAYMENT_ERROR_MSG);
-      setStatus(PAYMENT_ERROR_MSG);
       return false;
     }
   }, []);
@@ -127,7 +119,6 @@ export function ShopProvider({ children }) {
       cartItems,
       cartStatus,
       paymentStatus,
-      status,
       addToCart,
       sendCart,
       sendPayment,
@@ -138,7 +129,6 @@ export function ShopProvider({ children }) {
       cartItems,
       cartStatus,
       paymentStatus,
-      status,
       addToCart,
       sendCart,
       sendPayment,

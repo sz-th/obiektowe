@@ -72,9 +72,25 @@ func validatePayment(p PaymentRequest) error {
 	return nil
 }
 
+func validateProduct(item Product) error {
+	name := strings.TrimSpace(item.Name)
+	if item.ID <= 0 || name == "" || len(name) > maxFullNameLength {
+		return errors.New("invalid product")
+	}
+	if item.Price <= 0 || item.Price > maxAmount {
+		return errors.New("invalid product price")
+	}
+	return nil
+}
+
 func validateCart(c CartRequest) error {
 	if len(c.Items) == 0 || len(c.Items) > maxCartItems {
 		return errors.New("invalid items")
+	}
+	for _, item := range c.Items {
+		if err := validateProduct(item); err != nil {
+			return err
+		}
 	}
 	return nil
 }

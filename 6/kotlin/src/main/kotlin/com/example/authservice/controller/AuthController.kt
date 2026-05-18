@@ -6,9 +6,12 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 import com.example.authservice.dto.AuthRequest
+import com.example.authservice.dto.AuthResponse
+import com.example.authservice.dto.UserDto
 import com.example.authservice.service.AuthServiceEager
 import com.example.authservice.service.AuthServiceLazy
 import org.springframework.context.annotation.Lazy
+import jakarta.validation.Valid
 
 @RestController
 @RequestMapping("/api")
@@ -18,23 +21,35 @@ class AuthController(
 ) {
 
 	@PostMapping("/login")
-	fun login(@RequestBody request: AuthRequest): Map<String, Any> =
-		loginResponse(authServiceEager.authenticate(request.username, request.password), "Authentication successful", "Invalid credentials")
+	fun login(@Valid @RequestBody request: AuthRequest): AuthResponse =
+		loginResponse(
+			authServiceEager.authenticate(request.username, request.password),
+			"Authentication successful",
+			"Invalid credentials"
+		)
 
 	@PostMapping("/login-lazy")
-	fun loginLazy(@RequestBody request: AuthRequest): Map<String, Any> =
-		loginResponse(authServiceLazy.authenticate(request.username, request.password), "Authentication successful (Lazy)", "Invalid credentials (Lazy)")
+	fun loginLazy(@Valid @RequestBody request: AuthRequest): AuthResponse =
+		loginResponse(
+			authServiceLazy.authenticate(request.username, request.password),
+			"Authentication successful (Lazy)",
+			"Invalid credentials (Lazy)"
+		)
 
 	@GetMapping("/users")
-	fun getUsers(): List<Map<String, String>> = listOf(
-		mapOf("username" to "admin", "role" to "ADMIN"),
-		mapOf("username" to "user", "role" to "USER")
+	fun getUsers(): List<UserDto> = listOf(
+		UserDto(username = "admin", role = "ADMIN"),
+		UserDto(username = "user", role = "USER")
 	)
 
-	private fun loginResponse(isAuthenticated: Boolean, successMessage: String, failureMessage: String): Map<String, Any> =
+	private fun loginResponse(
+		isAuthenticated: Boolean,
+		successMessage: String,
+		failureMessage: String
+	): AuthResponse =
 		if (isAuthenticated) {
-			mapOf("success" to true, "message" to successMessage)
+			AuthResponse(success = true, message = successMessage)
 		} else {
-			mapOf("success" to false, "message" to failureMessage)
+			AuthResponse(success = false, message = failureMessage)
 		}
 }

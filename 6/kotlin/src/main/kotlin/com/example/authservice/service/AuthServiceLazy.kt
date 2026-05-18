@@ -5,8 +5,9 @@ import org.springframework.stereotype.Service
 
 @Service
 @Lazy
-class AuthServiceLazy {
-
+class AuthServiceLazy(
+	private val authCredentials: AuthCredentials
+) {
 	fun authenticate(username: String, password: String): Boolean =
-		AuthCredentials.authenticate(username, password)
+		authCredentials.authenticate(username, password)
 }

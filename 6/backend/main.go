@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
 	"time"
 )
 
@@ -11,8 +12,8 @@ const (
 	headerContentType   = "Content-Type"
 	methodNotAllowedMsg = "Method not allowed"
 	invalidBodyMsg      = "Invalid request body"
-	allowedOrigin       = "http://localhost:5173"
-	serverAddr          = ":8080"
+	defaultOrigin       = "http://localhost:5173"
+	defaultServerAddr   = "127.0.0.1:8080"
 
 	maxBodyBytes      = 1 << 20
 	maxFullNameLength = 200
@@ -47,19 +48,29 @@ var products = []Product{
 	{ID: 3, Name: "Klawiatura", Price: 249.99},
 }
 
+func envOrDefault(key, fallback string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return fallback
+}
+
 func setSecurityHeaders(w http.ResponseWriter) {
 	h := w.Header()
 	h.Set("X-Content-Type-Options", "nosniff")
 	h.Set("X-Frame-Options", "DENY")
 	h.Set("Referrer-Policy", "no-referrer")
+	h.Set("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'")
+	h.Set("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
 }
 
-func withCORS(next http.HandlerFunc) http.HandlerFunc {
+func withCORS(allowedOrigin string, next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		setSecurityHeaders(w)
 		w.Header().Set("Access-Control-Allow-Origin", allowedOrigin)
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		w.Header().Set("Vary", "Origin")
 		if r.Method == http.MethodOptions {
 			w.WriteHeader(http.StatusNoContent)
 			return
@@ -77,10 +88,13 @@ func requireMethod(w http.ResponseWriter, r *http.Request, method string) bool {
 }
 
 func main() {
+	allowedOrigin := envOrDefault("ALLOWED_ORIGIN", defaultOrigin)
+	serverAddr := envOrDefault("SERVER_ADDR", defaultServerAddr)
+
 	mux := http.NewServeMux()
-	mux.HandleFunc("/api/products", withCORS(productsHandler))
-	mux.HandleFunc("/api/cart", withCORS(cartHandler))
-	mux.HandleFunc("/api/payments", withCORS(paymentsHandler))
+	mux.HandleFunc("/api/products", withCORS(allowedOrigin, productsHandler))
+	mux.HandleFunc("/api/cart", withCORS(allowedOrigin, cartHandler))
+	mux.HandleFunc("/api/payments", withCORS(allowedOrigin, paymentsHandler))
 
 	srv := &http.Server{
 		Addr:              serverAddr,

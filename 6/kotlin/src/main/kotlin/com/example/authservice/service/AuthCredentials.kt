@@ -1,9 +1,13 @@
 package com.example.authservice.service
 
-object AuthCredentials {
-	private const val ADMIN_USER = "admin"
-	private const val ADMIN_PASSWORD = "admin"
+import org.springframework.beans.factory.annotation.Value
+import org.springframework.stereotype.Component
 
+@Component
+class AuthCredentials(
+	@Value("\${app.auth.demo-user}") private val demoUser: String,
+	@Value("\${app.auth.demo-password}") private val demoPassword: String
+) {
 	fun authenticate(username: String, password: String): Boolean =
-		username == ADMIN_USER && password == ADMIN_PASSWORD
+		username == demoUser && password == demoPassword
 }
