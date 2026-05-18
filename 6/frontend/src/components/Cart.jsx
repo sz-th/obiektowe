@@ -11,12 +11,12 @@ export default function Cart() {
   return (
     <section>
       <h2>Koszyk</h2>
-      {cartItems.length == 0 ? (
+      {cartItems.length === 0 ? (
         <p>Koszyk jest pusty</p>
       ) : (
         <ul>
-          {cartItems.map((item, index) => (
-            <li key={index}>
+          {cartItems.map((item) => (
+            <li key={item.cartId}>
               {item.name} - {item.price.toFixed(2)} PLN
             </li>
           ))}

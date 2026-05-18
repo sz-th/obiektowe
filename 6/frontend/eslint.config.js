@@ -27,6 +27,9 @@ export default [
       ...reactHooks.configs.recommended.rules,
       "react/react-in-jsx-scope": "off",
       "react/prop-types": "off",
+      eqeqeq: ["error", "always"],
+      "react/no-array-index-key": "error",
+      radix: ["error", "always"],
     },
   },
 ];

@@ -1,5 +1,9 @@
 import { useShop } from "../hooks/ShopContext";
 
+function formatPrice(value) {
+  return `${value.toFixed(2)} PLN`;
+}
+
 export default function Products() {
   const { products, productsError, addToCart } = useShop();
 
@@ -8,9 +12,9 @@ export default function Products() {
       <h2>Produkty</h2>
       {productsError ? <p>{productsError}</p> : null}
       <ul>
-        {products.map((product, index) => (
-          <li key={index}>
-            {product.name} - {product.price.toFixed(2)} PLN
+        {products.map((product) => (
+          <li key={product.id}>
+            {product.name} - {formatPrice(product.price)}
             <button type="button" onClick={() => addToCart(product)}>
               Dodaj do koszyka
             </button>

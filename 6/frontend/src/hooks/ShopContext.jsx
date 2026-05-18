@@ -19,6 +19,7 @@ const CART_ERROR_MSG = "Nie udalo sie wyslac koszyka";
 const PAYMENT_ERROR_MSG = "Nie udalo sie wyslac platnosci";
 
 const ShopContext = createContext(null);
+ShopContext.displayName = "ShopContext";
 
 function generateCartId() {
   if (
@@ -28,6 +29,14 @@ function generateCartId() {
     return crypto.randomUUID();
   }
   return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+function parseAmount(value) {
+  const amount = Number.parseFloat(value);
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return null;
+  }
+  return amount;
 }
 
 export function ShopProvider({ children }) {
@@ -45,7 +54,7 @@ export function ShopProvider({ children }) {
       try {
         const response = await axios.get(API_PRODUCTS_URL);
         if (cancelled) return;
-        if (response.status == 200) {
+        if (response.status === 200) {
           setProducts(response.data);
           setProductsError("");
         }
@@ -88,10 +97,17 @@ export function ShopProvider({ children }) {
 
   const sendPayment = useCallback(async (formData) => {
     setPaymentStatus("");
+    const amount = parseAmount(formData.amount);
+    if (amount === null) {
+      setPaymentStatus(PAYMENT_ERROR_MSG);
+      setStatus(PAYMENT_ERROR_MSG);
+      return false;
+    }
+
     try {
       const response = await axios.post(API_PAYMENTS_URL, {
         ...formData,
-        amount: parseInt(formData.amount),
+        amount,
       });
       setPaymentStatus(response.data.message);
       setStatus(response.data.message);

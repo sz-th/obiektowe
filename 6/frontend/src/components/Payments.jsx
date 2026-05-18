@@ -26,7 +26,9 @@ export default function Payments() {
     <section>
       <h2>Platnosci</h2>
       <form onSubmit={onSubmit}>
+        <label htmlFor="fullName">Imie i nazwisko</label>
         <input
+          id="fullName"
           name="fullName"
           placeholder="Imie i nazwisko"
           value={formData.fullName}
@@ -34,7 +36,9 @@ export default function Payments() {
           required
           maxLength={200}
         />
+        <label htmlFor="email">Email</label>
         <input
+          id="email"
           name="email"
           type="email"
           placeholder="Email"
@@ -43,7 +47,9 @@ export default function Payments() {
           required
           maxLength={320}
         />
+        <label htmlFor="amount">Kwota</label>
         <input
+          id="amount"
           name="amount"
           type="number"
           step="0.01"
