@@ -1,0 +1,3 @@
+name: "gocat CodeQL"
+paths:
+  - 6/oss/gocat
