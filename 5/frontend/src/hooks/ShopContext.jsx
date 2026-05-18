@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import PropTypes from "prop-types";
 import axios from "axios";
 
 const API_PRODUCTS_URL = "http://localhost:8080/api/products";
@@ -6,6 +7,7 @@ const API_CART_URL = "http://localhost:8080/api/cart";
 const API_PAYMENTS_URL = "http://localhost:8080/api/payments";
 
 const ShopContext = createContext(null);
+ShopContext.displayName = "ShopContext";
 
 export function ShopProvider({ children }) {
   const [products, setProducts] = useState([]);
@@ -22,6 +24,7 @@ export function ShopProvider({ children }) {
         setProducts(response.data);
         setProductsError("");
       } catch (error) {
+        console.error("loadProducts failed", error);
         setProductsError("Nie udalo sie pobrac produktow");
       }
     }
@@ -45,6 +48,7 @@ export function ShopProvider({ children }) {
       setStatus(response.data.message);
       return true;
     } catch (error) {
+      console.error("sendCart failed", error);
       setCartStatus("Nie udalo sie wyslac koszyka");
       setStatus("Nie udalo sie wyslac koszyka");
       return false;
@@ -63,6 +67,7 @@ export function ShopProvider({ children }) {
       setStatus(response.data.message);
       return true;
     } catch (error) {
+      console.error("sendPayment failed", error);
       setPaymentStatus("Nie udalo sie wyslac platnosci");
       setStatus("Nie udalo sie wyslac platnosci");
       return false;
@@ -86,6 +91,10 @@ export function ShopProvider({ children }) {
 
   return <ShopContext.Provider value={value}>{children}</ShopContext.Provider>;
 }
+
+ShopProvider.propTypes = {
+  children: PropTypes.node.isRequired,
+};
 
 export function useShop() {
   const context = useContext(ShopContext);
