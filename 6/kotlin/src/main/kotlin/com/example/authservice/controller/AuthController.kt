@@ -18,30 +18,23 @@ class AuthController(
 ) {
 
 	@PostMapping("/login")
-	fun login(@RequestBody request: AuthRequest): Map<String, Any> {
-		val isAuthenticated = authServiceEager.authenticate(request.username, request.password)
-		return if (isAuthenticated) {
-			mapOf("success" to true, "message" to "Authentication successful")
-		} else {
-			mapOf("success" to false, "message" to "Invalid credentials")
-		}
-	}
+	fun login(@RequestBody request: AuthRequest): Map<String, Any> =
+		loginResponse(authServiceEager.authenticate(request.username, request.password), "Authentication successful", "Invalid credentials")
 
 	@PostMapping("/login-lazy")
-	fun loginLazy(@RequestBody request: AuthRequest): Map<String, Any> {
-		val isAuthenticated = authServiceLazy.authenticate(request.username, request.password)
-		return if (isAuthenticated) {
-			mapOf("success" to true, "message" to "Authentication successful (Lazy)")
-		} else {
-			mapOf("success" to false, "message" to "Invalid credentials (Lazy)")
-		}
-	}
+	fun loginLazy(@RequestBody request: AuthRequest): Map<String, Any> =
+		loginResponse(authServiceLazy.authenticate(request.username, request.password), "Authentication successful (Lazy)", "Invalid credentials (Lazy)")
 
 	@GetMapping("/users")
-	fun getUsers(): List<Map<String, String>> {
-		return listOf(
-			mapOf("username" to "admin", "role" to "ADMIN"),
-			mapOf("username" to "user", "role" to "USER")
-		)
-	}
+	fun getUsers(): List<Map<String, String>> = listOf(
+		mapOf("username" to "admin", "role" to "ADMIN"),
+		mapOf("username" to "user", "role" to "USER")
+	)
+
+	private fun loginResponse(isAuthenticated: Boolean, successMessage: String, failureMessage: String): Map<String, Any> =
+		if (isAuthenticated) {
+			mapOf("success" to true, "message" to successMessage)
+		} else {
+			mapOf("success" to false, "message" to failureMessage)
+		}
 }

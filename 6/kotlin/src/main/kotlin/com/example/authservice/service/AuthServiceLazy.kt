@@ -7,11 +7,6 @@ import org.springframework.stereotype.Service
 @Lazy
 class AuthServiceLazy {
 
-	init {
-		println("AuthServiceLazy initialized")
-	}
-
-	fun authenticate(username: String, password: String): Boolean {
-		return username == "admin" && password == "admin"
-	}
+	fun authenticate(username: String, password: String): Boolean =
+		AuthCredentials.authenticate(username, password)
 }

@@ -1,13 +1,8 @@
 package main
 
 import (
-	"encoding/json"
-	"errors"
-	"fmt"
 	"log"
 	"net/http"
-	"net/mail"
-	"strings"
 	"time"
 )
 
@@ -79,97 +74,6 @@ func requireMethod(w http.ResponseWriter, r *http.Request, method string) bool {
 		return false
 	}
 	return true
-}
-
-func writeJSON(w http.ResponseWriter, status int, payload any) {
-	w.Header().Set(headerContentType, contentTypeJSON)
-	w.WriteHeader(status)
-	if err := json.NewEncoder(w).Encode(payload); err != nil {
-		log.Printf("encode response: %v", err)
-	}
-}
-
-func decodeJSON(w http.ResponseWriter, r *http.Request, dest any) bool {
-	r.Body = http.MaxBytesReader(w, r.Body, maxBodyBytes)
-	decoder := json.NewDecoder(r.Body)
-	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(dest); err != nil {
-		http.Error(w, invalidBodyMsg, http.StatusBadRequest)
-		return false
-	}
-	return true
-}
-
-func validatePayment(p PaymentRequest) error {
-	name := strings.TrimSpace(p.FullName)
-	if name == "" || len(name) > maxFullNameLength {
-		return errors.New("invalid full name")
-	}
-
-	email := strings.TrimSpace(p.Email)
-	if email == "" || len(email) > maxEmailLength || !strings.Contains(email, "@") {
-		return errors.New("invalid email")
-	}
-	if _, err := mail.ParseAddress(email); err != nil {
-		return errors.New("invalid email")
-	}
-
-	if p.Amount <= 0 || p.Amount > maxAmount {
-		return errors.New("invalid amount")
-	}
-	return nil
-}
-
-func validateCart(c CartRequest) error {
-	if len(c.Items) == 0 || len(c.Items) > maxCartItems {
-		return errors.New("invalid items")
-	}
-	return nil
-}
-
-func productsHandler(w http.ResponseWriter, r *http.Request) {
-	if !requireMethod(w, r, http.MethodGet) {
-		return
-	}
-	writeJSON(w, http.StatusOK, products)
-}
-
-func paymentsHandler(w http.ResponseWriter, r *http.Request) {
-	if !requireMethod(w, r, http.MethodPost) {
-		return
-	}
-	defer r.Body.Close()
-
-	var request PaymentRequest
-	if !decodeJSON(w, r, &request) {
-		return
-	}
-	if err := validatePayment(request); err != nil {
-		http.Error(w, invalidBodyMsg, http.StatusBadRequest)
-		return
-	}
-
-	message := fmt.Sprintf("Platnosc przyjeta na kwote %.2f", request.Amount)
-	writeJSON(w, http.StatusOK, PaymentResponse{Message: message})
-}
-
-func cartHandler(w http.ResponseWriter, r *http.Request) {
-	if !requireMethod(w, r, http.MethodPost) {
-		return
-	}
-	defer r.Body.Close()
-
-	var request CartRequest
-	if !decodeJSON(w, r, &request) {
-		return
-	}
-	if err := validateCart(request); err != nil {
-		http.Error(w, invalidBodyMsg, http.StatusBadRequest)
-		return
-	}
-
-	message := fmt.Sprintf("Koszyk przyjety (%d pozycji)", len(request.Items))
-	writeJSON(w, http.StatusOK, PaymentResponse{Message: message})
 }
 
 func main() {

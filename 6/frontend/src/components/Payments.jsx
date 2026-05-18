@@ -3,6 +3,34 @@ import { useShop } from "../hooks/ShopContext";
 
 const INITIAL_FORM = { fullName: "", email: "", amount: "" };
 
+const FORM_FIELDS = [
+  {
+    id: "fullName",
+    name: "fullName",
+    label: "Imie i nazwisko",
+    placeholder: "Imie i nazwisko",
+    type: "text",
+    maxLength: 200,
+  },
+  {
+    id: "email",
+    name: "email",
+    label: "Email",
+    placeholder: "Email",
+    type: "email",
+    maxLength: 320,
+  },
+  {
+    id: "amount",
+    name: "amount",
+    label: "Kwota",
+    placeholder: "Kwota",
+    type: "number",
+    step: "0.01",
+    min: "0.01",
+  },
+];
+
 export default function Payments() {
   const { paymentStatus, sendPayment } = useShop();
   const [formData, setFormData] = useState(INITIAL_FORM);
@@ -26,39 +54,23 @@ export default function Payments() {
     <section>
       <h2>Platnosci</h2>
       <form onSubmit={onSubmit}>
-        <label htmlFor="fullName">Imie i nazwisko</label>
-        <input
-          id="fullName"
-          name="fullName"
-          placeholder="Imie i nazwisko"
-          value={formData.fullName}
-          onChange={onChange}
-          required
-          maxLength={200}
-        />
-        <label htmlFor="email">Email</label>
-        <input
-          id="email"
-          name="email"
-          type="email"
-          placeholder="Email"
-          value={formData.email}
-          onChange={onChange}
-          required
-          maxLength={320}
-        />
-        <label htmlFor="amount">Kwota</label>
-        <input
-          id="amount"
-          name="amount"
-          type="number"
-          step="0.01"
-          min="0.01"
-          placeholder="Kwota"
-          value={formData.amount}
-          onChange={onChange}
-          required
-        />
+        {FORM_FIELDS.map((field) => (
+          <div key={field.id}>
+            <label htmlFor={field.id}>{field.label}</label>
+            <input
+              id={field.id}
+              name={field.name}
+              type={field.type}
+              placeholder={field.placeholder}
+              value={formData[field.name]}
+              onChange={onChange}
+              required
+              maxLength={field.maxLength}
+              step={field.step}
+              min={field.min}
+            />
+          </div>
+        ))}
         <button type="submit">Wyslij</button>
       </form>
       {paymentStatus ? <p>{paymentStatus}</p> : null}

@@ -5,11 +5,6 @@ import org.springframework.stereotype.Service
 @Service
 class AuthServiceEager {
 
-	init {
-		println("AuthServiceEager initialized")
-	}
-
-	fun authenticate(username: String, password: String): Boolean {
-		return username == "admin" && password == "admin"
-	}
+	fun authenticate(username: String, password: String): Boolean =
+		AuthCredentials.authenticate(username, password)
 }

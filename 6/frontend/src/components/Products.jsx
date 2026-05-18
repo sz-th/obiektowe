@@ -1,8 +1,5 @@
 import { useShop } from "../hooks/ShopContext";
-
-function formatPrice(value) {
-  return `${value.toFixed(2)} PLN`;
-}
+import { formatPrice } from "../utils/format";
 
 export default function Products() {
   const { products, productsError, addToCart } = useShop();
