@@ -1,3 +1,5 @@
-name: "gocat CodeQL"
+name: "Zadanie 6 CodeQL"
 paths:
   - 6/oss/gocat
+  - 6/backend
+  - 6/frontend/src

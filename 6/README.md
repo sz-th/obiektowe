@@ -64,3 +64,11 @@ Po utworzeniu projektów w SonarCloud podmień `<project-key>` na własne klucze
 [![Quality Gate](https://sonarcloud.io/api/project_badges/measure?project=zadanie6-kotlin&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=zadanie6-kotlin)
 [![Bugs](https://sonarcloud.io/api/project_badges/measure?project=zadanie6-kotlin&metric=bugs)](https://sonarcloud.io/summary/new_code?id=zadanie6-kotlin)
 [![Code Smells](https://sonarcloud.io/api/project_badges/measure?project=zadanie6-kotlin&metric=code_smells)](https://sonarcloud.io/summary/new_code?id=zadanie6-kotlin)
+
+## GitHub Actions
+
+Workflowy CI znajduja sie w `.github/workflows/` (w korzeniu repozytorium, sciezki wskazuja na `6/`).
+Kopia workflowow dla samodzielnego folderu: `6/.github/workflows/` — skopiuj ja do korzenia repo, aby GitHub uruchamial pipeline.
+
+- `zadanie6-lint.yml` — ESLint, gofmt, go vet, golangci-lint
+- `zadanie6-codeql.yml` — analiza CodeQL dla Go i JavaScript

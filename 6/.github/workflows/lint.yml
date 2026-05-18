@@ -1,0 +1,54 @@
+name: Lint
+
+on:
+  push:
+    paths:
+      - "**"
+  pull_request:
+    paths:
+      - "**"
+
+defaults:
+  run:
+    working-directory: .
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+
+      - name: Install frontend dependencies
+        run: npm ci
+        working-directory: frontend
+
+      - name: ESLint
+        run: npm run lint
+        working-directory: frontend
+
+      - name: gofmt
+        run: test -z "$(gofmt -l .)"
+        working-directory: backend
+
+      - name: go vet
+        run: go vet ./...
+        working-directory: backend
+
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: v1.62.2
+          working-directory: backend
+          args: --timeout=3m
+
+      - name: gocat tests
+        run: go test ./...
+        working-directory: oss/gocat
