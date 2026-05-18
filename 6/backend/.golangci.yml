@@ -1,0 +1,25 @@
+run:
+  timeout: 2m
+  tests: true
+
+linters:
+  disable-all: true
+  enable:
+    - govet
+    - staticcheck
+    - errcheck
+    - gosimple
+    - ineffassign
+    - unused
+    - gosec
+
+linters-settings:
+  govet:
+    enable-all: true
+  gosec:
+    excludes: []
+
+issues:
+  exclude-use-default: false
+  max-issues-per-linter: 0
+  max-same-issues: 0
